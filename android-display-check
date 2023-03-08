@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# catches CTRL + C
+trap "echo ''; tput cnorm; adb disconnect ${1}; exit" SIGINT
+
+adb tcpip 5555
+
+# connect to device
+if [[ "$(adb devices)" != *"${1}"* ]]; 
+then
+	adbState=$(adb connect ${1})
+fi
+
+tput reset
+
+# if something went worng
+if [[ "${adbState}" != *"connected to"* ]]; 
+then
+	echo "$adbState"
+	exit
+fi
+
+# prepare terminal
+tput civis
+i=0
+printf "$(date +'%H:%M:%S ')"
+
+while true
+do
+	# get display state
+	state=$(adb -s ${1} shell dumpsys power | grep mHoldingDisplaySuspendBlocker)	
+	if [[ "${state}" == *"true"* ]]; 
+	then
+		printf '\e[31m%s\e[0m' '█'
+	else
+		printf '\e[32m%s\e[0m' '━'
+	fi
+sleep 2.55
+let i++
+
+	# adjust the condition if your terminal is wider then 80 characters
+	if ((i > 80));
+	then
+		let i=0
+		echo ''
+		printf "$(date +'%H:%M:%S ')"
+	fi
+done
+
+
